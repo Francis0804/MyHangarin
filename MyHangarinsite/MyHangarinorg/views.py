@@ -1,19 +1,46 @@
+# MyHangarinorg/views.py
 from django.shortcuts import render
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, TemplateView
 from django.urls import reverse_lazy
 from .models import Task, SubTask, Note, Category, Priority
 from .forms import TaskForm, SubTaskForm, NoteForm, CategoryForm, PriorityForm
+from django.db.models import Q
+from django.utils import timezone
 
 class HomePageView(TemplateView):
     template_name = "home.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["total_tasks"] = Task.objects.count()
+        
+        today = timezone.now().date()
+        count = Task.objects.filter(created_at__year=today.year).count()
+        
+        context["tasks_created_this_year"] = count
+        return context
 
-# Task Views
 class TaskList(ListView):
     model = Task
-    context_object_name = 'tasks'
+    context_object_name = 'tasks'  # Make sure this matches your template
     template_name = 'task_list.html'
     paginate_by = 10
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        query = self.request.GET.get('q')  # This looks for 'q' parameter
+        
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(category__name__icontains=query) |
+                Q(priority__name__icontains=query) |
+                Q(status__icontains=query)
+            )
+        return qs
+
+# MAKE SURE YOU HAVE THESE CREATE VIEWS:
 class TaskCreateView(CreateView):
     model = Task
     form_class = TaskForm
@@ -37,6 +64,17 @@ class SubTaskList(ListView):
     context_object_name = 'subtasks'
     template_name = 'subtask_list.html'
     paginate_by = 10
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        query = self.request.GET.get('q')
+        
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query) |
+                Q(task__title__icontains=query)
+            )
+        return qs
 
 class SubTaskCreateView(CreateView):
     model = SubTask
@@ -62,6 +100,17 @@ class NoteList(ListView):
     template_name = 'note_list.html'
     paginate_by = 10
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        query = self.request.GET.get('q')
+        
+        if query:
+            qs = qs.filter(
+                Q(content__icontains=query) |
+                Q(task__title__icontains=query)
+            )
+        return qs
+
 class NoteCreateView(CreateView):
     model = Note
     form_class = NoteForm
@@ -85,6 +134,18 @@ class CategoryList(ListView):
     context_object_name = 'categories'
     template_name = 'category_list.html'
     paginate_by = 10
+    ordering = ["name"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        query = self.request.GET.get('q')
+        
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(description__icontains=query)
+            )
+        return qs
 
 class CategoryCreateView(CreateView):
     model = Category
@@ -109,6 +170,17 @@ class PriorityList(ListView):
     context_object_name = 'priorities'
     template_name = 'priority_list.html'
     paginate_by = 10
+    ordering = ["name"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        query = self.request.GET.get('q')
+        
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query)
+            )
+        return qs
 
 class PriorityCreateView(CreateView):
     model = Priority

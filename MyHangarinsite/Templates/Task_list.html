@@ -15,13 +15,17 @@
             <br />
             <div class="col-md-12 row">
                 <div class="col-md-6">
-                    <form class="navbar-left navbar-form nav-search mr-md-3" action="">
+                    <!-- FIXED SEARCH FORM -->
+                    <form class="navbar-left navbar-form nav-search mr-md-3" method="get" action="{% url 'task-list' %}">
                         <div class="input-group">
-                            <input type="text" placeholder="Search tasks..." class="form-control" name="search" />
+                            <input type="text" placeholder="Search tasks..." class="form-control" name="q" value="{{ request.GET.q }}" />
                             <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <i class="la la-search search-icon"></i>
-                                </span>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="la la-search search-icon"></i> Search
+                                </button>
+                                {% if request.GET.q %}
+                                <a href="{% url 'task-list' %}" class="btn btn-secondary">Clear</a>
+                                {% endif %}
                             </div>
                         </div>
                     </form>
@@ -33,6 +37,15 @@
                 </div>
             </div>
             <div class="card-body">
+                
+                <!-- SEARCH RESULTS MESSAGE -->
+                {% if request.GET.q %}
+                <div class="alert alert-info">
+                    <i class="la la-search"></i> Showing results for: "<strong>{{ request.GET.q }}</strong>"
+                    <a href="{% url 'task-list' %}" class="float-right btn btn-sm btn-light">Show all tasks</a>
+                </div>
+                {% endif %}
+
                 <table class="table table-striped mt-3">
                     <thead>
                         <tr>
@@ -49,15 +62,19 @@
                         {% for object in object_list %}
                         <tr>
                             <td>{{ object.title }}</td>
-                            <td>{{ object.description }}</td>
+                            <td>{{ object.description|truncatewords:10 }}</td>
                             <td>
                                 <span class="badge badge-{% if object.status == 'Completed' %}success{% elif object.status == 'In progress' %}warning{% else %}secondary{% endif %}">
                                     {{ object.status }}
                                 </span>
                             </td>
-                            <td>{{ object.priority }}</td>
+                            <td>
+                                <span class="badge badge-{% if object.priority.name == 'high' %}danger{% elif object.priority.name == 'medium' %}warning{% else %}info{% endif %}">
+                                    {{ object.priority }}
+                                </span>
+                            </td>
                             <td>{{ object.category }}</td>
-                            <td>{{ object.deadline|date:"M d, Y H:i" }}</td>
+                            <td>{{ object.deadline|date:"M d, Y H:i"|default:"-" }}</td>
                             <td>
                                 <a href="{% url 'task-update' object.pk %}" class="btn btn-sm btn-warning">Edit</a>
                                 <a href="{% url 'task-delete' object.pk %}" class="btn btn-sm btn-danger">Delete</a>
@@ -65,12 +82,38 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">No tasks found.</td>
+                            <td colspan="7" class="text-center">
+                                {% if request.GET.q %}
+                                No tasks found matching "{{ request.GET.q }}"
+                                {% else %}
+                                No tasks found. <a href="{% url 'task-add' %}">Create your first task</a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                {% include 'includes/pagination.html' %}
+                
+                <!-- PAGINATION WITH SEARCH PARAMS -->
+                {% if is_paginated %}
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">previous</a>
+                        {% endif %}
+
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
