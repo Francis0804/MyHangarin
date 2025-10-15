@@ -15,35 +15,68 @@
             <br />
             <div class="col-md-12 row">
                 <div class="col-md-6">
-                    <form class="navbar-left navbar-form nav-search mr-md-3" action="">
+                    <form class="navbar-left navbar-form nav-search mr-md-3" method="get" action="{% url 'category-list' %}">
                         <div class="input-group">
-                            <input type="text" placeholder="Search categories..." class="form-control" name="search" />
+                            <input type="text" placeholder="Search categories..." class="form-control" name="q" value="{{ request.GET.q }}" />
                             <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <i class="la la-search search-icon"></i>
-                                </span>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="la la-search search-icon"></i> Search
+                                </button>
+                                {% if request.GET.q %}
+                                <a href="{% url 'category-list' %}" class="btn btn-secondary">Clear</a>
+                                {% endif %}
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="col-md-6">
                     <div class="pull-right">
+                        <form method="get" class="form-inline float-right ml-2">
+                            <input type="hidden" name="q" value="{{ request.GET.q }}">
+                            <div class="form-group">
+                                <label for="sort_by" class="mr-2">Sort by:</label>
+                                <select class="form-control form-control-sm" id="sort_by" name="sort_by" onchange="this.form.submit()">
+                                    <option value="name" {% if current_sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+                                    <option value="-name" {% if current_sort == '-name' %}selected{% endif %}>Name (Z-A)</option>
+                                    <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                                    <option value="-created_at" {% if current_sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                                </select>
+                            </div>
+                        </form>
+                        
                         <a href="{% url 'category-add' %}" class="btn btn-success btn-rounded">Add New Category</a>
+                        {% if request.GET.q or request.GET.sort_by and request.GET.sort_by != 'name' %}
+                            <a href="{% url 'category-list' %}" class="btn btn-secondary btn-rounded">Reset</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
             <div class="card-body">
+                {% if request.GET.q %}
+                <div class="alert alert-info">
+                    <i class="la la-search"></i> Showing results for: "<strong>{{ request.GET.q }}</strong>"
+                    <a href="{% url 'category-list' %}" class="float-right btn btn-sm btn-light">Show all categories</a>
+                </div>
+                {% endif %}
+
                 <table class="table table-striped mt-3">
                     <thead>
                         <tr>
-                            <th scope="col">Name</th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'name' %}-name{% else %}name{% endif %}" class="text-dark text-decoration-none">
+                                    Name 
+                                    {% if current_sort == 'name' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-name' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">Created</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for object in object_list %}
+                        {% for object in categories %}
                         <tr>
                             <td>{{ object.name }}</td>
+                            <td>{{ object.created_at|date:"M d, Y" }}</td>
                             <td>
                                 <a href="{% url 'category-update' object.pk %}" class="btn btn-sm btn-warning">Edit</a>
                                 <a href="{% url 'category-delete' object.pk %}" class="btn btn-sm btn-danger">Delete</a>
@@ -51,12 +84,37 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="2" class="text-center">No categories found.</td>
+                            <td colspan="3" class="text-center">
+                                {% if request.GET.q %}
+                                No categories found matching "{{ request.GET.q }}"
+                                {% else %}
+                                No categories found. <a href="{% url 'category-add' %}">Create your first category</a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                {% include 'includes/pagination.html' %}
+                
+                {% if is_paginated %}
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">previous</a>
+                        {% endif %}
+
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

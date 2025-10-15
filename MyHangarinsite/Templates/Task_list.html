@@ -32,7 +32,32 @@
                 </div>
                 <div class="col-md-6">
                     <div class="pull-right">
+                        <!-- SORT FORM -->
+                        <form method="get" class="form-inline float-right ml-2">
+                            <input type="hidden" name="q" value="{{ request.GET.q }}">
+                            <div class="form-group">
+                                <label for="sort_by" class="mr-2">Sort by:</label>
+                                <select class="form-control form-control-sm" id="sort_by" name="sort_by" onchange="this.form.submit()">
+                                    <option value="title" {% if current_sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+                                    <option value="-title" {% if current_sort == '-title' %}selected{% endif %}>Title (Z-A)</option>
+                                    <option value="status" {% if current_sort == 'status' %}selected{% endif %}>Status</option>
+                                    <option value="-status" {% if current_sort == '-status' %}selected{% endif %}>Status (Reverse)</option>
+                                    <option value="priority__name" {% if current_sort == 'priority__name' %}selected{% endif %}>Priority</option>
+                                    <option value="-priority__name" {% if current_sort == '-priority__name' %}selected{% endif %}>Priority (Reverse)</option>
+                                    <option value="category__name" {% if current_sort == 'category__name' %}selected{% endif %}>Category (A-Z)</option>
+                                    <option value="-category__name" {% if current_sort == '-category__name' %}selected{% endif %}>Category (Z-A)</option>
+                                    <option value="deadline" {% if current_sort == 'deadline' %}selected{% endif %}>Deadline (Soonest)</option>
+                                    <option value="-deadline" {% if current_sort == '-deadline' %}selected{% endif %}>Deadline (Latest)</option>
+                                    <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>Created (Oldest)</option>
+                                    <option value="-created_at" {% if current_sort == '-created_at' %}selected{% endif %}>Created (Newest)</option>
+                                </select>
+                            </div>
+                        </form>
+                        
                         <a href="{% url 'task-add' %}" class="btn btn-success btn-rounded">Add New Task</a>
+                        {% if request.GET.q or request.GET.sort_by and request.GET.sort_by != 'title' %}
+                            <a href="{% url 'task-list' %}" class="btn btn-secondary btn-rounded">Reset</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -49,12 +74,37 @@
                 <table class="table table-striped mt-3">
                     <thead>
                         <tr>
-                            <th scope="col">Title</th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'title' %}-title{% else %}title{% endif %}" class="text-dark text-decoration-none">
+                                    Title 
+                                    {% if current_sort == 'title' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-title' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
                             <th scope="col">Description</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Priority</th>
-                            <th scope="col">Category</th>
-                            <th scope="col">Deadline</th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'status' %}-status{% else %}status{% endif %}" class="text-dark text-decoration-none">
+                                    Status
+                                    {% if current_sort == 'status' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-status' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'priority__name' %}-priority__name{% else %}priority__name{% endif %}" class="text-dark text-decoration-none">
+                                    Priority
+                                    {% if current_sort == 'priority__name' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-priority__name' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'category__name' %}-category__name{% else %}category__name{% endif %}" class="text-dark text-decoration-none">
+                                    Category
+                                    {% if current_sort == 'category__name' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-category__name' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'deadline' %}-deadline{% else %}deadline{% endif %}" class="text-dark text-decoration-none">
+                                    Deadline
+                                    {% if current_sort == 'deadline' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-deadline' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -69,7 +119,7 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge badge-{% if object.priority.name == 'high' %}danger{% elif object.priority.name == 'medium' %}warning{% else %}info{% endif %}">
+                                <span class="badge badge-{% if object.priority.name == 'High' or object.priority.name == 'high' %}danger{% elif object.priority.name == 'Medium' or object.priority.name == 'medium' %}warning{% else %}info{% endif %}">
                                     {{ object.priority }}
                                 </span>
                             </td>
@@ -94,13 +144,13 @@
                     </tbody>
                 </table>
                 
-                <!-- PAGINATION WITH SEARCH PARAMS -->
+                <!-- PAGINATION WITH SEARCH AND SORT PARAMS -->
                 {% if is_paginated %}
                 <div class="pagination">
                     <span class="step-links">
                         {% if page_obj.has_previous %}
-                            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">&laquo; first</a>
-                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">previous</a>
+                            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">previous</a>
                         {% endif %}
 
                         <span class="current">
@@ -108,8 +158,8 @@
                         </span>
 
                         {% if page_obj.has_next %}
-                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">next</a>
-                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="btn btn-sm btn-light">last &raquo;</a>
+                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">last &raquo;</a>
                         {% endif %}
                     </span>
                 </div>

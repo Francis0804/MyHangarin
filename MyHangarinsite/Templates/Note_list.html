@@ -10,43 +10,81 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">List of Notes</div>
-                <div class="card-category">Manage notes for your tasks</div>
+                <div class="card-category">Manage your task notes</div>
             </div>
             <br />
             <div class="col-md-12 row">
                 <div class="col-md-6">
-                    <form class="navbar-left navbar-form nav-search mr-md-3" action="">
+                    <form class="navbar-left navbar-form nav-search mr-md-3" method="get" action="{% url 'note-list' %}">
                         <div class="input-group">
-                            <input type="text" placeholder="Search notes..." class="form-control" name="search" />
+                            <input type="text" placeholder="Search notes..." class="form-control" name="q" value="{{ request.GET.q }}" />
                             <div class="input-group-append">
-                                <span class="input-group-text">
-                                    <i class="la la-search search-icon"></i>
-                                </span>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="la la-search search-icon"></i> Search
+                                </button>
+                                {% if request.GET.q %}
+                                <a href="{% url 'note-list' %}" class="btn btn-secondary">Clear</a>
+                                {% endif %}
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="col-md-6">
                     <div class="pull-right">
+                        <form method="get" class="form-inline float-right ml-2">
+                            <input type="hidden" name="q" value="{{ request.GET.q }}">
+                            <div class="form-group">
+                                <label for="sort_by" class="mr-2">Sort by:</label>
+                                <select class="form-control form-control-sm" id="sort_by" name="sort_by" onchange="this.form.submit()">
+                                    <option value="content" {% if current_sort == 'content' %}selected{% endif %}>Content (A-Z)</option>
+                                    <option value="-content" {% if current_sort == '-content' %}selected{% endif %}>Content (Z-A)</option>
+                                    <option value="task__title" {% if current_sort == 'task__title' %}selected{% endif %}>Task (A-Z)</option>
+                                    <option value="-task__title" {% if current_sort == '-task__title' %}selected{% endif %}>Task (Z-A)</option>
+                                    <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                                    <option value="-created_at" {% if current_sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                                </select>
+                            </div>
+                        </form>
+                        
                         <a href="{% url 'note-add' %}" class="btn btn-success btn-rounded">Add New Note</a>
+                        {% if request.GET.q or request.GET.sort_by and request.GET.sort_by != 'created_at' %}
+                            <a href="{% url 'note-list' %}" class="btn btn-secondary btn-rounded">Reset</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
             <div class="card-body">
+                {% if request.GET.q %}
+                <div class="alert alert-info">
+                    <i class="la la-search"></i> Showing results for: "<strong>{{ request.GET.q }}</strong>"
+                    <a href="{% url 'note-list' %}" class="float-right btn btn-sm btn-light">Show all notes</a>
+                </div>
+                {% endif %}
+
                 <table class="table table-striped mt-3">
                     <thead>
                         <tr>
-                            <th scope="col">Task</th>
-                            <th scope="col">Content</th>
-                            <th scope="col">Created At</th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'content' %}-content{% else %}content{% endif %}" class="text-dark text-decoration-none">
+                                    Content 
+                                    {% if current_sort == 'content' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-content' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">
+                                <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort_by={% if current_sort == 'task__title' %}-task__title{% else %}task__title{% endif %}" class="text-dark text-decoration-none">
+                                    Task
+                                    {% if current_sort == 'task__title' %}<i class="la la-arrow-up"></i>{% elif current_sort == '-task__title' %}<i class="la la-arrow-down"></i>{% endif %}
+                                </a>
+                            </th>
+                            <th scope="col">Created</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for object in object_list %}
+                        {% for object in notes %}
                         <tr>
-                            <td>{{ object.task }}</td>
-                            <td>{{ object.content }}</td>
+                            <td>{{ object.content|truncatewords:15 }}</td>
+                            <td>{{ object.task.title|default:"No Task" }}</td>
                             <td>{{ object.created_at|date:"M d, Y H:i" }}</td>
                             <td>
                                 <a href="{% url 'note-update' object.pk %}" class="btn btn-sm btn-warning">Edit</a>
@@ -55,12 +93,37 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center">No notes found.</td>
+                            <td colspan="4" class="text-center">
+                                {% if request.GET.q %}
+                                No notes found matching "{{ request.GET.q }}"
+                                {% else %}
+                                No notes found. <a href="{% url 'note-add' %}">Create your first note</a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                {% include 'includes/pagination.html' %}
+                
+                {% if is_paginated %}
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">&laquo; first</a>
+                            <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">previous</a>
+                        {% endif %}
+
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">next</a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.sort_by %}&sort_by={{ request.GET.sort_by }}{% endif %}" class="btn btn-sm btn-light">last &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
