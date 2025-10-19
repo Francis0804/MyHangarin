@@ -1,0 +1,78 @@
+{% load i18n %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm Login | Hangarin</title>
+
+    <!-- Bootstrap + FontAwesome -->
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e63946, #1d3557);
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .auth-card {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            padding: 2.5rem;
+            max-width: 420px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .btn-continue {
+            background: #1d3557;
+            color: #fff;
+            border-radius: 50px;
+            padding: 0.6rem 1.5rem;
+            width: 100%;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+
+        .btn-continue:hover {
+            background: #457b9d;
+        }
+
+        .btn-cancel {
+            border-radius: 50px;
+            border: 1px solid #1d3557;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        h4 {
+            color: #1d3557;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h4>Sign In with {{ provider.name }}</h4>
+        <p class="mb-4">You are about to sign in using your <strong>{{ provider.name }}</strong> account.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-continue">
+                Continue with {{ provider.name }}
+            </button>
+        </form>
+        <a href="{% url 'account_login' %}" class="btn btn-outline-dark btn-cancel">Cancel</a>
+    </div>
+</body>
+</html>
